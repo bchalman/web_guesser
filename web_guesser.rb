@@ -2,6 +2,9 @@ require 'sinatra'
 require 'sinatra/reloader'
 set :secret_number, rand(101)
 
+@@guesses = 6
+
+
 get '/' do
   message = ""
 
@@ -10,20 +13,44 @@ get '/' do
   message = response[0]
   color = response[1]
 
-  erb :index, :locals => {:number => settings.secret_number, :message => message, :color => color}
+  if params["cheat"] && params["cheat"] == "true"
+    cheat = true
+  else
+    cheat = false
+  end
+
+  erb :index, :locals => {:number => settings.secret_number, :message => message,
+                          :color => color, :guesses => @@guesses, :cheat => cheat}
 end
 
 
 def check_guess (guess)
   if guess > (settings.secret_number + 5)
-    ["Way too high!", '#ff6868']
+    @@guesses -= 1
+    response = ["Way too high!", '#ff6868']
   elsif guess > settings.secret_number
-    ["Too high!", '#f9cb93']
+    @@guesses -= 1
+    response = ["Too high!", '#f9cb93']
   elsif guess < (settings.secret_number - 5)
-    ["Way too low!", '#ff6868']
+    @@guesses -= 1
+    response = ["Way too low!", '#ff6868']
   elsif guess < settings.secret_number
-    ["Too low!", '#f9cb93']
+    @@guesses -= 1
+    response = ["Too low!", '#f9cb93']
   else
-    ["You got it right!", '#aada72']
+    set_new_number()
+    response = ["You got it right!", '#aada72']
   end
+
+  if @@guesses == 0
+    set_new_number()
+    response = ["You used up all your guesses! Picking a new number... Try again."]
+  else
+    response
+  end
+end
+
+def set_new_number
+  @@guesses = 5
+  settings.secret_number = rand(101)
 end
